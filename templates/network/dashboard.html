@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load network_extras %}
+
+
+{% block content %}
+  <meta charset="UTF-8">
+
+  <h2>Welcome, {{ user_profile.user.username }}!</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+        {{ message }}
+      </p>
+    {% endfor %}
+  {% endif %}
+
+  <h3>Suggested Study Buddies</h3>
+
+  <ul>
+    {% for suggestion in suggestions %}
+        {% with profile=suggestion.profile slots=suggestion.slots weekdays=suggestion.weekdays %}
+          <li>
+            <strong>{{ profile.user.username }}</strong> — {{ profile.major }}<br>
+            Courses: {{ profile.courses.all|join:", " }}<br>
+            Study Style: {{ profile.get_study_style_display }}<br>
+    
+            <form action="{% url 'send_invite' profile.id %}" method="post">
+              {% csrf_token %}
+    
+              <label>Select Day:</label>
+              <select name="weekday">
+                {% for day in weekdays %}
+                  <option value="{{ day }}">
+                    {{ week_days_map|dict_get:day }}
+                  </option>
+                {% endfor %}
+              </select>
+    
+              <label>Start:</label>
+              <select name="start">
+                {% for weekday, start, end in slots %}
+                    <option value="{{ start|time:'H:i' }}">{{ start|time:"g:i A" }}</option>
+                {% endfor %}
+            </select>
+    
+              <label>End:</label>
+              <select name="end">
+                {% for weekday, start, end in slots %}
+                    <option value="{{ end|time:'H:i' }}">{{ end|time:"g:i A" }}</option>
+                {% endfor %}
+            </select>
+
+    
+              <button type="submit">Send Invite</button>
+            </form>
+          </li>
+        {% endwith %}
+    {% empty %}
+      <li>No suitable study buddies found at the moment.</li>
+    {% endfor %}
+  </ul>
+    
+    <h3>📨 Pending Study Invites</h3>
+    
+    <ul>
+      {% for invite in incoming_invites %}
+        <li>
+          <strong>{{ invite.sender.user.username }}</strong> invites you to study on
+          {{ week_days_map|dict_get:invite.selected_weekday }} from
+          {{ invite.selected_start }} to {{ invite.selected_end }}.
+    
+          <a href="{% url 'accept_invite' invite.id %}">✅ Accept</a> |
+          <a href="{% url 'reject_invite' invite.id %}">❌ Reject</a>
+        </li>
+      {% empty %}
+        <li>No new invites</li>
+      {% endfor %}
+    </ul>
+{% endblock %}
