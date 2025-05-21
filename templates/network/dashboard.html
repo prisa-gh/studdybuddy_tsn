@@ -22,6 +22,7 @@
         {% with profile=suggestion.profile slots=suggestion.slots weekdays=suggestion.weekdays %}
           <li>
             <strong>{{ profile.user.username }}</strong> — {{ profile.major }}<br>
+            <img src="{{ profile.profile_pic_url }}" alt="Profile Picture" width="60" height="60" style="object-fit:cover; border-radius:30px;">
             Courses: {{ profile.courses.all|join:", " }}<br>
             Study Style: {{ profile.get_study_style_display }}<br>
     
