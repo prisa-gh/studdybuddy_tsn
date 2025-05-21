@@ -2,14 +2,94 @@
 <html>
 <head>
     <title>Study Buddy</title>
+    <style>
+        /* Sidebar */
+        .sidebar {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 2000;
+            top: 0;
+            left: 0;
+            background-color: #343a40;
+            overflow-x: hidden;
+            transition: 0.3s;
+            padding-top: 60px;
+        }
+        .sidebar a {
+            padding: 14px 28px 14px 32px;
+            text-decoration: none;
+            font-size: 1.1em;
+            color: #f8f9fa;
+            display: block;
+            transition: 0.2s;
+        }
+        .sidebar a:hover {
+            background: #495057;
+        }
+        .sidebar .closebtn {
+            position: absolute;
+            top: 0;
+            right: 0px;
+            font-size: 32px;
+            margin-left: 12px;
+            color: #f8f9fa;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+        /* Main content shift */
+        #main {
+            transition: margin-left 0.3s;
+            padding: 16px;
+        }
+        /* Sidebar open styles */
+        .sidebar-open {
+            width: 220px;
+        }
+        .main-shift {
+            margin-left: 220px;
+        }
+        /* Responsive for smaller screens */
+        @media (max-width: 600px) {
+            .sidebar-open {
+                width: 90vw;
+            }
+            .main-shift {
+                margin-left: 0;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div id="sidebar" class="sidebar">
+        <button class="closebtn" onclick="closeSidebar()">&times;</button>
+        <a href="{% url 'dashboard' %}">Dashboard Home</a>
+        <a href="{% url 'profile' %}">My Profile</a>
+        <!-- Add other links here if needed -->
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
     <nav>
         {% if user.is_authenticated %}
-            Logged in as {{ user.username }} | <a href="{% url 'logout' %}">Logout</a>
+            <span style="cursor:pointer; font-size:20px;" onclick="openSidebar()">&#9776; Menu</span>
+            &nbsp; Logged in as {{ user.username }} | <a href="{% url 'logout' %}">Logout</a>
         {% endif %}
     </nav>
     <hr>
-    {% block content %}{% endblock %}
+    <div id="main">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        function openSidebar() {
+            document.getElementById("sidebar").classList.add("sidebar-open");
+            document.getElementById("main").classList.add("main-shift");
+        }
+        function closeSidebar() {
+            document.getElementById("sidebar").classList.remove("sidebar-open");
+            document.getElementById("main").classList.remove("main-shift");
+        }
+    </script>
 </body>
 </html>

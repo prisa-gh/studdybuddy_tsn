@@ -11,5 +11,8 @@ urlpatterns = [
     path('invite/reject/<int:invite_id>/', views.reject_invite, name='reject_invite'),
     path('login/', auth_views.LoginView.as_view(template_name='network/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
+    path('profile/', views.profile_view, name='profile'),
+    path('profile/edit/', views.profile_edit, name='profile_edit'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
