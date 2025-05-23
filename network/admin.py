@@ -1,7 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import Course, UserProfile, UserCourse, AvailabilitySlot, StudyInvite
+from .models import (Course,
+                     UserProfile,
+                     UserCourse,
+                     AvailabilitySlot,
+                     StudyInvite,
+                     StudySession)
 
 
 class UserProfileInline(admin.StackedInline):
@@ -24,8 +29,8 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
-
 admin.site.register(Course)
 admin.site.register(UserCourse)
 admin.site.register(AvailabilitySlot)
 admin.site.register(StudyInvite)
+admin.site.register(StudySession)

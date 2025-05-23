@@ -51,20 +51,19 @@ class UserCourse(models.Model):
 
 class AvailabilitySlot(models.Model):
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    weekday = models.IntegerField(choices=[(i, day) for i, day in enumerate(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])])
-    start_hour = models.TimeField()
-    end_hour = models.TimeField()
+    #weekday = models.IntegerField(choices=[(i, day) for i, day in enumerate(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])])
+    start_hour = models.DateTimeField()
+    end_hour = models.DateTimeField()
 
     class Meta:
-        ordering = ['weekday', 'start_hour']
+        ordering = ['start_hour']
 
 
 class StudyInvite(models.Model):
     sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_invites')
     receiver = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_invites')
-    selected_weekday = models.IntegerField(null=True, blank=True)
-    selected_start = models.TimeField(null=True, blank=True)
-    selected_end = models.TimeField(null=True, blank=True)
+    selected_start = models.DateTimeField(null=True, blank=True)
+    selected_end = models.DateTimeField(null=True, blank=True)
     invite_message = models.TextField(default="Hello! I want to invite you to study with me.", blank=True)
     status = models.CharField(
         max_length=10,
@@ -79,3 +78,22 @@ class StudyInvite(models.Model):
 
     class Meta:
         unique_together = ('sender', 'receiver')
+
+
+class StudySession(models.Model):
+    participant_one = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participant_one')
+    participant_two = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participant_two')
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    study_style = models.CharField(
+        max_length=20,
+        choices=[
+            ('quiet', 'Quiet'),
+            ('discussion', 'Discussion'),
+            ('flashcards', 'Flashcards'),
+            ('mixed', 'Mixed'),
+        ]
+    )
+
+    class Meta:
+        ordering = ['start_time']

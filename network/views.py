@@ -1,9 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 
-from .models import StudyInvite
+from .models import StudyInvite, StudySession
 from .models import UserProfile
 from .utils import get_suggested_study_buddies
 from .forms import UserProfileForm
@@ -27,7 +28,6 @@ def dashboard(request):
     for suggestion in suggestions:
         profile = suggestion['profile']
         slots = suggestion['slots']
-        weekdays = suggestion['weekdays']
         print(f"DEBUG: Profile {profile} — id={profile.id}, score={slots}")
 
     incoming_invites = StudyInvite.objects.filter(
@@ -41,6 +41,17 @@ def dashboard(request):
         'incoming_invites': incoming_invites,
         'week_days_map': {0: 'Mon', 1: 'Tue', 2: 'Wed', 3: 'Thu', 4: 'Fri', 5: 'Sat', 6: 'Sun'},
     })
+
+@login_required
+def view_study_sessions(request):
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+
+    sessions = StudySession.objects.filter(
+    Q(participant_one=user_profile)
+    | Q(participant_two=user_profile))
+
+    sessions = sessions.distinct()
+    return render(request, 'network/study_sessions.html', {'sessions': sessions})
 
 
 @login_required
@@ -72,18 +83,16 @@ def send_invite(request, receiver_id):
     if StudyInvite.objects.filter(sender=sender_profile, receiver=receiver_profile).exists():
         messages.warning(request, "You already sent an invite.")
     else:
-        weekday = int(request.POST.get("weekday"))
         start = request.POST.get("start")
         end = request.POST.get("end")
 
         StudyInvite.objects.create(
             sender=sender_profile,
             receiver=receiver_profile,
-            selected_weekday=weekday,
             selected_start=start,
             selected_end=end
         )
-        messages.success(request, f"Invite sent to {receiver_profile.user.username} for {start}–{end} on weekday {weekday}")
+        messages.success(request, f"Invite sent to {receiver_profile.user.username} for {start}–{end}")
 
     return redirect('dashboard')
 

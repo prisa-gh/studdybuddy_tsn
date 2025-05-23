@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Your Study Sessions</h2>
+  <ul>
+    {% for session in sessions %}
+      <li>
+        With: {{ session.participant_one }} and {{ session.participant_two }} <br>
+        Start: {{ session.start_time }} <br>
+        End: {{ session.end_time }} <br>
+        Style: {{ session.study_style }}
+      </li>
+    {% empty %}
+      <li>No study sessions yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

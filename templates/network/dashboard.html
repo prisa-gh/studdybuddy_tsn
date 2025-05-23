@@ -28,30 +28,19 @@
     
             <form action="{% url 'send_invite' profile.id %}" method="post">
               {% csrf_token %}
-    
-              <label>Select Day:</label>
-              <select name="weekday">
-                {% for day in weekdays %}
-                  <option value="{{ day }}">
-                    {{ week_days_map|dict_get:day }}
-                  </option>
-                {% endfor %}
-              </select>
-    
-              <label>Start:</label>
-              <select name="start">
-                {% for weekday, start, end in slots %}
-                    <option value="{{ start|time:'H:i' }}">{{ start|time:"g:i A" }}</option>
-                {% endfor %}
-            </select>
-    
-              <label>End:</label>
-              <select name="end">
-                {% for weekday, start, end in slots %}
-                    <option value="{{ end|time:'H:i' }}">{{ end|time:"g:i A" }}</option>
-                {% endfor %}
-            </select>
-
+                <div>
+                    <span>{{ suggestion.profile.user.username }}</span>
+                    {% if suggestion.slots %}
+                      {% with slot=suggestion.slots.0 %}
+                        <form method="post" action="{% url 'send_invite' suggestion.profile.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="start" value="{{ slot.1|date:'Y-m-d H:i' }}">
+                          <input type="hidden" name="end" value="{{ slot.2|date:'Y-m-d H:i' }}">
+                          <button type="submit">Send Invite for {{ slot.1|date:"D, M d H:i" }}–{{ slot.2|date:"H:i" }}</button>
+                        </form>
+                      {% endwith %}
+                    {% endif %}
+                </div>
     
               <button type="submit">Send Invite</button>
             </form>
@@ -68,7 +57,6 @@
       {% for invite in incoming_invites %}
         <li>
           <strong>{{ invite.sender.user.username }}</strong> invites you to study on
-          {{ week_days_map|dict_get:invite.selected_weekday }} from
           {{ invite.selected_start }} to {{ invite.selected_end }}.
     
           <a href="{% url 'accept_invite' invite.id %}">✅ Accept</a> |
