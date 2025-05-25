@@ -1,0 +1,86 @@
+/* Base layout */
+body {
+  font-family: system-ui, sans-serif;
+  background-color: #f8f9fa;
+  color: #212529;
+  margin: 0;
+  padding: 1.5rem;
+}
+
+h2, h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+p, li {
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+/* Sections */
+.section-subtext {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+/* Study buddy cards */
+.foaf-container,
+.suggestions-list,
+.invites-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.foaf-card,
+.suggestion-card,
+.invite-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.foaf-image,
+.profile-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.foaf-info {
+  flex-grow: 1;
+}
+
+.foaf-info strong {
+  font-weight: 600;
+}
+
+button {
+  padding: 6px 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+button:hover {
+  background-color: #1d4ed8;
+}
+
+a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 class Course(models.Model):
     name = models.CharField(max_length=100)
@@ -8,6 +9,15 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.code} - {self.name}"
 
+WEEKDAY_CHOICES = [
+    ('mon', 'Monday'),
+    ('tue', 'Tuesday'),
+    ('wed', 'Wednesday'),
+    ('thu', 'Thursday'),
+    ('fri', 'Friday'),
+    ('sat', 'Saturday'),
+    ('sun', 'Sunday'),
+]
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -27,7 +37,14 @@ class UserProfile(models.Model):
         default='mixed'
     )
 
-    prefers_group = models.BooleanField(default=True)
+    available_weekdays = ArrayField(
+        models.CharField(choices=WEEKDAY_CHOICES),
+        default=list,
+        max_length=50,  # Enough to hold all combinations
+        blank=True,
+        help_text="Select the days you're available to study on."
+    )
+
     profile_pic = models.ImageField(upload_to='profile_pics', null=True, blank=True)
     bio = models.TextField(null=True, blank=True)
 
@@ -49,21 +66,9 @@ class UserCourse(models.Model):
         unique_together = ('user_profile', 'course')
 
 
-class AvailabilitySlot(models.Model):
-    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    #weekday = models.IntegerField(choices=[(i, day) for i, day in enumerate(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])])
-    start_hour = models.DateTimeField()
-    end_hour = models.DateTimeField()
-
-    class Meta:
-        ordering = ['start_hour']
-
-
-class StudyInvite(models.Model):
+class StudyBuddyInvite(models.Model):
     sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_invites')
     receiver = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_invites')
-    selected_start = models.DateTimeField(null=True, blank=True)
-    selected_end = models.DateTimeField(null=True, blank=True)
     invite_message = models.TextField(default="Hello! I want to invite you to study with me.", blank=True)
     status = models.CharField(
         max_length=10,
@@ -80,20 +85,9 @@ class StudyInvite(models.Model):
         unique_together = ('sender', 'receiver')
 
 
-class StudySession(models.Model):
+class StudyBuddy(models.Model):
     participant_one = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participant_one')
     participant_two = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participant_two')
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    study_style = models.CharField(
-        max_length=20,
-        choices=[
-            ('quiet', 'Quiet'),
-            ('discussion', 'Discussion'),
-            ('flashcards', 'Flashcards'),
-            ('mixed', 'Mixed'),
-        ]
-    )
 
     class Meta:
-        ordering = ['start_time']
+        unique_together = ('participant_one', 'participant_two')

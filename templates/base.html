@@ -1,7 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Study Buddy</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'network/css/styles.css' %}">
+    <!-- Your style here -->
+    <title>Study Buddy</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'network/css/styles.css' %}">
+
     <style>
         /* Sidebar */
         .sidebar {
@@ -66,7 +73,7 @@
         <button class="closebtn" onclick="closeSidebar()">&times;</button>
         <a href="{% url 'dashboard' %}">Dashboard Home</a>
         <a href="{% url 'profile' %}">My Profile</a>
-        <a href="{% url 'study_sessions' %}">Study Sessions</a>
+        <a href="{% url 'study_buddies' %}">Study Buddies</a>
         <a href="{% url 'logout' %}">Logout</a>
     </div>
 

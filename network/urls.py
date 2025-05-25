@@ -13,7 +13,11 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
-    path('profile/study_sessions/', views.view_study_sessions, name='study_sessions'),
+    path('profile/study_buddies/', views.view_study_buddies, name='study_buddies'),
+
+    path('study_graph/', views.study_graph, name='study_graph'),
+    path('study_graph/image/', views.study_graph_image, name='study_graph_image'),
+
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

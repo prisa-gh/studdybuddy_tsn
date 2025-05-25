@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Study Network Graph</h2>
+  <p>This graph shows connections between users based on accepted study buddy sessions.</p>
+  <img src="{% url 'study_graph_image' %}" alt="Study Network Graph" style="display: block; max-width:90vw;">
+{% endblock %}

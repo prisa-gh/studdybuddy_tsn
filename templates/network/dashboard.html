@@ -2,6 +2,8 @@
 {% load network_extras %}
 
 
+
+
 {% block content %}
   <meta charset="UTF-8">
 
@@ -16,49 +18,35 @@
   {% endif %}
 
   <h3>Suggested Study Buddies</h3>
+    <p style="color: #666; font-size: 0.95em;">
+    These are students who share courses, study styles, and availability with you.
+    </p>
 
-  <ul>
-    {% for suggestion in suggestions %}
-        {% with profile=suggestion.profile slots=suggestion.slots weekdays=suggestion.weekdays %}
-          <li>
-            <strong>{{ profile.user.username }}</strong> — {{ profile.major }}<br>
-            <img src="{{ profile.profile_pic_url }}" alt="Profile Picture" width="60" height="60" style="object-fit:cover; border-radius:30px;">
-            Courses: {{ profile.courses.all|join:", " }}<br>
-            Study Style: {{ profile.get_study_style_display }}<br>
-    
-            <form action="{% url 'send_invite' profile.id %}" method="post">
+  <ul class="suggestions-list">
+      {% for suggestion in suggestions %}
+        <li class="suggestion-card">
+          <img class="profile-image" src="{{ suggestion.profile.profile_pic_url }}" alt="Profile Picture">
+          <div>
+            <p><strong>{{ suggestion.profile.user.username }}</strong> — {{ suggestion.profile.major }}</p>
+            <p>Courses: {{ suggestion.profile.courses|join:", " }}</p>
+            <p>Study Style: {{ suggestion.profile.get_study_style_display }}</p>
+            <form action="{% url 'send_invite' suggestion.profile.id %}" method="post">
               {% csrf_token %}
-                <div>
-                    <span>{{ suggestion.profile.user.username }}</span>
-                    {% if suggestion.slots %}
-                      {% with slot=suggestion.slots.0 %}
-                        <form method="post" action="{% url 'send_invite' suggestion.profile.id %}">
-                          {% csrf_token %}
-                          <input type="hidden" name="start" value="{{ slot.1|date:'Y-m-d H:i' }}">
-                          <input type="hidden" name="end" value="{{ slot.2|date:'Y-m-d H:i' }}">
-                          <button type="submit">Send Invite for {{ slot.1|date:"D, M d H:i" }}–{{ slot.2|date:"H:i" }}</button>
-                        </form>
-                      {% endwith %}
-                    {% endif %}
-                </div>
-    
               <button type="submit">Send Invite</button>
             </form>
-          </li>
-        {% endwith %}
-    {% empty %}
-      <li>No suitable study buddies found at the moment.</li>
-    {% endfor %}
+          </div>
+        </li>
+      {% endfor %}
   </ul>
-    
+
     <h3>📨 Pending Study Invites</h3>
-    
+
     <ul>
       {% for invite in incoming_invites %}
         <li>
           <strong>{{ invite.sender.user.username }}</strong> invites you to study on
           {{ invite.selected_start }} to {{ invite.selected_end }}.
-    
+
           <a href="{% url 'accept_invite' invite.id %}">✅ Accept</a> |
           <a href="{% url 'reject_invite' invite.id %}">❌ Reject</a>
         </li>
@@ -66,4 +54,41 @@
         <li>No new invites</li>
       {% endfor %}
     </ul>
+<h3>👥 FOAF Study Buddy Recommendations</h3>
+<p style="color: #666; font-size: 0.95em;">
+    These are students connected to your current study buddies, but not yet connected to you.
+</p>
+
+<ul class="foaf-container">
+  {% for foaf in foaf_suggestions %}
+    <li class="foaf-card">
+      <img class="foaf-image" src="{{ profile.profile_pic_url }}" alt="Profile Picture">
+      <div class="foaf-info">
+        <div class="foaf-header">{{ foaf.user }}</div>
+        <div class="foaf-details">{{ foaf.major }}</div>
+        <div class="foaf-details"><strong>Courses in common:</strong> {{ foaf.common_courses|join:", " }}</div>
+        <div class="foaf-details">
+          <strong>Shared Days:</strong>
+          {% if foaf.shared_days %}
+              {{ foaf.shared_days|join:", " }}
+          {% else %}
+              <span style="color: #888;">None</span>
+          {% endif %}
+        </div>
+        <div class="foaf-details"><strong>Friend of:</strong> {{ foaf.buddy_names|join:", " }}</div>
+
+        {% if foaf.id %}
+          <form action="{% url 'send_invite' foaf.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="foaf-invite-btn">Send Invite</button>
+          </form>
+        {% else %}
+          <span style="color: red;">Cannot invite (invalid profile)</span>
+        {% endif %}
+      </div>
+    </li>
+  {% empty %}
+    <li>No “friend-of-friend” recommendations found at the moment.</li>
+  {% endfor %}
+</ul>
 {% endblock %}

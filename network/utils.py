@@ -1,31 +1,55 @@
-from datetime import timedelta
-
 from django.db.models import Q, Count
-from .models import UserProfile, StudyInvite, AvailabilitySlot
+from datetime import timedelta
+from .models import UserProfile, StudyBuddyInvite, StudyBuddy
+
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# network/utils.py
+
+def build_study_network_graph():
+    G = nx.Graph()
+    # Add nodes for all users
+    users = UserProfile.objects.all()
+    for user in users:
+        G.add_node(user.id, label=user.user.username)
 
 
-def get_suggested_study_buddies(user_profile, min_duration=timedelta(hours=1)):
+
+    # Add edges from study sessions (accepted connections)
+    study_buddies = StudyBuddy.objects.all()
+    for study_buddy in study_buddies:
+        G.add_edge(study_buddy.participant_one.id, study_buddy.participant_two.id, type='study_buddy')
+
+    # Add directed edges for all invites (optional: only show pending or all)
+    invites = StudyBuddyInvite.objects.all()
+    for invite in invites:
+        G.add_edge(invite.sender.id, invite.receiver.id, type='invite', status=invite.status)
+
+    print(f"Graph nodes: {G.nodes}")
+    print(f"Graph edges: {G.edges}")
+    return G
+
+
+def draw_study_network_graph(G):
+    pos = nx.spring_layout(G)
+    edge_colors = ['green' if d.get('type') == 'session' else 'blue' for _,_,d in G.edges(data=True)]
+    nx.draw(G, pos, with_labels=True, labels=nx.get_node_attributes(G, 'label'),
+            edge_color=edge_colors, node_size=800, node_color='lightgray')
+    plt.show()
+
+def get_suggested_study_buddies(user_profile):
     print("=" * 40)
     print(f"Debug for get_suggested_study_buddies for user {user_profile} (id={user_profile.id})")
 
-    """
-    Suggests study buddies for the given user_profile based on:
-    - Shared courses
-    - Not already invited or already has a session
-    - At least one overlapping availability slot
-    - Compatible study styles
-    """
     # Exclude users already invited or connected
     excluded_ids = set(
-        StudyInvite.objects.filter(sender=user_profile).values_list('receiver_id', flat=True)
+        StudyBuddyInvite.objects.filter(sender=user_profile).values_list('receiver_id', flat=True)
     ).union(
-        StudyInvite.objects.filter(receiver=user_profile).values_list('sender_id', flat=True)
+        StudyBuddyInvite.objects.filter(receiver=user_profile).values_list('sender_id', flat=True)
     )
     excluded_ids.add(user_profile.id)
     print(f"Excluded user IDs (already invited or self): {excluded_ids}")
-
-    my_courses = list(user_profile.courses.all())
-    print(f"Your courses: {[c.code for c in my_courses]}")
 
     # Find users sharing at least one course
     shared_course_users = UserProfile.objects \
@@ -37,60 +61,99 @@ def get_suggested_study_buddies(user_profile, min_duration=timedelta(hours=1)):
 
     print(f"Found {shared_course_users.count()} users sharing courses with you:")
 
+    my_weekdays =  list(user_profile.available_weekdays)
     # Get user's availability
-    user_avail = AvailabilitySlot.objects.filter(user_profile=user_profile)
-    print(f"Your availability slots: {len(user_avail)}")
+    compatible_days = UserProfile.objects \
+        .filter(available_weekdays__overlap=user_profile.available_weekdays) \
+        .exclude(id__in=excluded_ids) \
+        .annotate(shared_days=Count('available_weekdays')) \
+        .order_by('-shared_days') \
+        .distinct()
+    print(f"Your availability days: {len(compatible_days)}")
+
+    my_courses = set(c.code for c in user_profile.courses.all())
+    my_days = set(user_profile.available_weekdays)
 
     suggestions = []
 
-    for other_user_profile in shared_course_users:
-        print(f"\nChecking available slots for {other_user_profile} (id={other_user_profile.id})")
-        other_avail = AvailabilitySlot.objects.filter(user_profile=other_user_profile)
-        # Here, get_common_time_slots must be the corrected one using start_hour.weekday()
-
-        print(f"  {other_user_profile}'s availability slots: {len(other_avail)}")
-        common_slots = get_common_time_slots(user_avail, other_avail)
-        print(f"  Found {len(common_slots)} common slots.")
-        if not common_slots:
-            print("    Skipped: No common time slots.")
-            continue
-
-        # Make sure compatible_styles is implemented and available in this module
+    for other_user_profile in shared_course_users and compatible_days:
         if not compatible_styles(user_profile, other_user_profile):
             print("    Skipped: Incompatible study styles.")
             continue
+        other_courses = set(c.code for c in other_user_profile.courses.all())
+        overlapping_courses = my_courses & other_courses  # set intersection
 
-        weekdays = sorted(set(slot[0] for slot in common_slots))
+        other_days = set(other_user_profile.available_weekdays)
+        overlapping_days = my_days & other_days
+
+        study_style_match = (user_profile.study_style == other_user_profile.study_style or
+                             user_profile.study_style == 'mixed' or
+                             other_user_profile.study_style == 'mixed')
+
         suggestions.append({
             'profile': other_user_profile,
-            'slots': common_slots,
-            'weekdays': weekdays,
+            'courses': overlapping_courses,
+            'days': overlapping_days,
+            'style_match': study_style_match,
+            'user_study_style': user_profile.study_style,
+            'other_study_style': other_user_profile.study_style,
         })
 
-
     print(f"\nTotal suggestions made: {len(suggestions)}")
-    print("=" * 40)
+    for suggestion in suggestions:
+        print(f"Study buddy suggestions: {suggestion['profile'].user.username} - courses: {suggestion['courses']}, days: {suggestion['days']}")
 
     return suggestions
 
 
-def get_common_time_slots(user_slots, other_slots, min_duration=timedelta(hours=1)):
-    """
-    Returns a list of tuples (weekday, start, end) of overlapping time slots
-    between two users. Only returns overlaps of at least min_duration (default 1 hour).
-    Assumes each slot has attributes: weekday, start_hour, end_hour (all datetimes or times).
-    """
-    matches = []
-    for slot1 in user_slots:
-        for slot2 in other_slots:
-            if slot1.start_hour.date() == slot2.start_hour.date():
-                # Overlap check
-                start = max(slot1.start_hour, slot2.start_hour)
-                end = min(slot1.end_hour, slot2.end_hour)
-                if start < end and (end - start) >= min_duration:
-                    matches.append((slot1.start_hour.weekday(), start, end))
-    return matches
+def get_foaf_recommendations(user_profile):
+    G = build_study_network_graph()
+    user_id = user_profile.id
+    if user_id not in G:
+        return []
 
+    # Get direct buddies
+    direct_buddies = set(G.neighbors(user_id))
+    print(f"User {user_profile} (id={user_id}) has {len(direct_buddies)} direct buddies.")
+    print(f"Direct buddies: {direct_buddies}")
+
+    # To keep only "first instance" of each FOAF, use a set to mark collected
+    foafs = []
+    seen = set()
+    for buddy_id in direct_buddies:
+        for foaf_id in G.neighbors(buddy_id):
+            if (
+                foaf_id != user_id and                 # not self
+                foaf_id not in direct_buddies and      # not a direct buddy
+                foaf_id not in seen                    # not already collected via another buddy
+            ):
+                seen.add(foaf_id)
+                mutual_buddies_ids = direct_buddies.intersection(G.neighbors(foaf_id))
+                # Retrieve usernames for mutual buddies
+                mutual_buddies = UserProfile.objects.filter(id__in=mutual_buddies_ids).select_related("user")
+                buddy_names = [b.user.username for b in mutual_buddies]
+                # Accumulate all data as a dictionary
+
+                foafs.append({
+                    "id": foaf_id,
+                    "buddy_names": buddy_names,
+                    "name": UserProfile.objects.get(id=foaf_id).user.username,
+                })
+
+                print(f"Added FOAF: {foaf_id} via buddy {buddy_id}")
+
+    # Exclude users already invited (pending/rejected)
+    invited_ids = set(
+        user_profile.sent_invites.values_list('receiver_id', flat=True)
+    ).union(
+        user_profile.received_invites.values_list('sender_id', flat=True)
+    )
+
+    # Filter out those already invited
+    foafs = [foaf for foaf in foafs if foaf["id"] not in invited_ids]
+
+    print(f"Final FOAF: {foafs} ")
+    return foafs
 
 def compatible_styles(user1, user2):
     # Match if same style or either is 'mixed'

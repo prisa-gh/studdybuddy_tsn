@@ -3,13 +3,27 @@
 {% block content %}
 <h2>My Profile</h2>
 <img src="{{ profile.profile_pic_url }}" alt="Profile Picture" style="width: 80px; height: 80px; border-radius: 40px; object-fit:cover;">
-<p><strong>Username:</strong> {{ profile.user.username }}</p>
-<p><strong>School:</strong> {{ profile.school }}</p>
-<p><strong>Major:</strong> {{ profile.major }}</p>
-<p><strong>Year:</strong> {{ profile.get_year_of_study_display }}</p>
-<p><strong>Study Style:</strong> {{ profile.get_study_style_display }}</p>
-<p><strong>Prefers Group:</strong> {{ profile.prefers_group|yesno:"Yes,No" }}</p>
-<p><strong>Bio:</strong> {{ profile.bio }}</p>
+    <p><strong>Username:</strong> {{ profile.user.username }}</p>
+    <p><strong>Bio:</strong> {{ profile.bio }}</p>
+    <p><strong>School:</strong> {{ profile.school }}</p>
+    <p><strong>Major:</strong> {{ profile.major }}</p>
+    <p><strong>Year:</strong> {{ profile.get_year_of_study_display }}</p>
+    <p><strong>Study Style:</strong> {{ profile.get_study_style_display }}</p>
+    <p><strong>Availability:</strong> {{ profile.available_weekdays }}</p>
+    <p><strong>Enrolled Courses:</strong>
+        {% if course_names %}
+            <ul>
+                {% for cname in course_names %}
+                    <li>{{ cname }}</li>
+                {% endfor %}
+            </ul>
+
+        {% else %}
+            <span style="color: #888;">No courses enrolled yet</span>
+        {% endif %}
+    </p>
+
+
 
 <a href="{% url 'profile_edit' %}" class="btn btn-primary">Edit</a>
 {% endblock %}
