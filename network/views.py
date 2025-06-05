@@ -1,17 +1,38 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Q
 from django.http import HttpResponse
 
 import io
-from .models import StudyBuddyInvite, StudyBuddy, WEEKDAY_CHOICES
-from .models import UserProfile
-from .utils import get_suggested_study_buddies, get_foaf_recommendations, build_study_network_graph
-from .forms import UserProfileForm
+from .models import UserProfile, StudyBuddyInvite, StudyBuddy, WEEKDAY_CHOICES, UserCourse
+from .forms import UserProfileForm, RegisterForm
+
+from .utils import build_study_network_graph, draw_study_network_graph, get_suggested_study_buddies, get_foaf_recommendations
 
 
+
+def home(request):
+    return render(request, 'network/home.html')
+
+
+
+def register(request):
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            school = form.cleaned_data.get("school")
+            major = form.cleaned_data.get("major")
+            # Fill UserProfile with extra fields
+            UserProfile.objects.filter(user=user).update(school=school, major=major)
+            login(request, user)
+            return redirect("dashboard")
+    else:
+        form = RegisterForm()
+    return render(request, "network/register.html", {"form": form})
 
 @login_required
 def dashboard(request):
@@ -24,7 +45,7 @@ def dashboard(request):
         }
     )
 
-    if not user_profile.school or not user_profile.major:
+    if not user_profile.courses or not user_profile.available_weekdays:
         messages.warning(request, "Please complete your profile to get better suggestions.")
 
     weekday_labels = dict(WEEKDAY_CHOICES)
@@ -109,7 +130,11 @@ def view_study_buddies(request):
     Q(participant_one=user_profile)
     | Q(participant_two=user_profile))
 
-    return render(request, 'network/study_buddies.html', {'study_buddies': study_buddies})
+    return render(
+        request,
+        'network/study_buddies.html',
+        {'study_buddies': study_buddies,
+         'user_profile': user_profile,})
 
 
 @login_required
@@ -130,6 +155,22 @@ def profile_edit(request):
         form = UserProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
+            # Handle enrolled courses
+            new_courses = form.cleaned_data['enrolled_courses']
+            current_courses = profile.courses.all()
+
+            # Add new UserCourse objects
+            for course in new_courses:
+                UserCourse.objects.get_or_create(user_profile=profile, course=course)
+            # Remove stale ones (Optional)
+            for course in current_courses:
+                if course not in new_courses:
+                    UserCourse.objects.filter(user_profile=profile, course=course).delete()
+
+            # Save available_weekdays separately if you store as list
+            profile.available_weekdays = form.cleaned_data['available_weekdays']
+            profile.save()
+
             messages.success(request, "Profile updated successfully.")
             return redirect('profile')
     else:
@@ -180,22 +221,50 @@ def reject_invite(request, invite_id):
         messages.error(request, "Invalid invite.")
     return redirect('dashboard')
 
+
+# views.py
+
+
+
 @login_required
 def study_graph_image(request):
-    G = build_study_network_graph()
     import matplotlib.pyplot as plt
-    import networkx as nx
 
-    plt.figure(figsize=(8, 6))
-    pos = nx.spring_layout(G)
-    edge_colors = ['green' if d.get('type') == 'study_buddy' else 'blue' for _,_,d in G.edges(data=True)]
-    nx.draw(G, pos, with_labels=True, labels=nx.get_node_attributes(G, 'label'),
-            edge_color=edge_colors, node_size=800, node_color='lightgray')
+    user = request.user
+    user_profile = UserProfile.objects.get(user=user)
+    user_id = str(user_profile.pk)
+    G = build_study_network_graph()
+
+    # Gather study buddies
+    buddy_qs = StudyBuddy.objects.filter(
+        Q(participant_one=user_profile) | Q(participant_two=user_profile)
+    )
+    buddy_profiles = set()
+    for sb in buddy_qs:
+        if sb.participant_one == user_profile:
+            buddy_profiles.add(sb.participant_two.pk)
+        else:
+            buddy_profiles.add(sb.participant_one.pk)
+    buddies = [str(pk) for pk in buddy_profiles]
+
+    # Gather recommendations (suggested buddies + FOAFs)
+    suggested_profiles = [str(sug['profile'].pk) for sug in get_suggested_study_buddies(user_profile)]
+    print(get_foaf_recommendations(user_profile)[0].keys())  # Shows dict keys in your server log
+    foaf_profiles = [str(foaf['id']) for foaf in get_foaf_recommendations(user_profile)]
+    recommendations = list(set(suggested_profiles + foaf_profiles) - set(buddies) - {user_id})
+
+    # Draw and return as image
     buf = io.BytesIO()
+    draw_study_network_graph(
+        G,
+        user_node=user_id,
+        buddy_nodes=buddies,
+        recommendation_nodes=recommendations
+    )
     plt.savefig(buf, format='png')
     plt.close()
     buf.seek(0)
-    return HttpResponse(buf.read(), content_type='image/png')
+    return HttpResponse(buf.getvalue(), content_type='image/png')
 
 @login_required
 def study_graph(request):

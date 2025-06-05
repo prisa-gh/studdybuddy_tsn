@@ -1,29 +1,170 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>My Profile</h2>
-<img src="{{ profile.profile_pic_url }}" alt="Profile Picture" style="width: 80px; height: 80px; border-radius: 40px; object-fit:cover;">
-    <p><strong>Username:</strong> {{ profile.user.username }}</p>
-    <p><strong>Bio:</strong> {{ profile.bio }}</p>
-    <p><strong>School:</strong> {{ profile.school }}</p>
-    <p><strong>Major:</strong> {{ profile.major }}</p>
-    <p><strong>Year:</strong> {{ profile.get_year_of_study_display }}</p>
-    <p><strong>Study Style:</strong> {{ profile.get_study_style_display }}</p>
-    <p><strong>Availability:</strong> {{ profile.available_weekdays }}</p>
-    <p><strong>Enrolled Courses:</strong>
-        {% if course_names %}
-            <ul>
-                {% for cname in course_names %}
-                    <li>{{ cname }}</li>
+<div class="profile-view-card">
+    <div class="profile-header">
+        <img class="profile-pic-lg" src="{{ profile.profile_pic_url }}" alt="{{ user.username }}'s profile picture">
+        <div class="profile-header-info">
+            <h2>{{ user.username }}</h2>
+            <span class="badge major-badge">{{ profile.major }}</span>
+            <div class="profile-meta">
+                <span class="profile-meta-item">Year: {{ profile.get_year_of_study_display }}</span>
+                <span class="profile-meta-dot">&middot;</span>
+                <span class="profile-meta-item">School: {{ profile.school }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-details-block">
+        <div>
+            <b>Study Style:</b>
+            <span class="withicon">📝 {{ profile.get_study_style_display }}</span>
+        </div>
+        <div class="weekdays">
+            <b>Available Days:</b>
+            {% for wd in profile.available_weekdays %}
+                <span class="weekday">{{ wd|capfirst }}</span>
+            {% empty %}
+                <em>No availability set</em>
+            {% endfor %}
+        </div>
+        <div>
+            <b>Bio:</b>
+            <div class="bio-block">
+                {{ profile.bio|linebreaksbr|default:"<span class='muted'>No bio yet.</span>" }}
+            </div>
+        </div>
+        <div>
+            <b>Enrolled Courses:</b>
+            <ul class="courses-list">
+                {% for course in profile.courses.all %}
+                    <li>{{ course.code }} — {{ course.name }}</li>
+                {% empty %}
+                    <li class="muted">No courses added yet.</li>
                 {% endfor %}
             </ul>
+        </div>
+    </div>
 
-        {% else %}
-            <span style="color: #888;">No courses enrolled yet</span>
-        {% endif %}
-    </p>
+    {% if request.user == user %}
+    <div style="text-align:center; margin-top:28px;">
+        <a href="{% url 'profile_edit' %}" class="btn btn-primary profile-edit-btn">Edit Profile</a>
+    </div>
+    {% endif %}
+</div>
 
-
-
-<a href="{% url 'profile_edit' %}" class="btn btn-primary">Edit</a>
+<style>
+.profile-view-card {
+    background: #fff;
+    max-width: 480px;
+    margin: 48px auto 36px auto;
+    padding: 2.2em 2.2em 1.5em 2.2em;
+    border-radius: 15px;
+    box-shadow: 0 8px 36px #007bff22, 0 3px 12px #0001;
+}
+.profile-header {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1.6em;
+}
+.profile-pic-lg {
+    width: 86px; height: 86px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 10px #2076d638;
+    margin-right: 1.6em;
+    background: #f2f8ff;
+    border: 2.5px solid #b9d7ff;
+}
+.profile-header-info {
+    flex: 1;
+}
+.profile-view-card h2 {
+    margin: 0 0 6px 0;
+    font-size: 1.7em;
+    letter-spacing: 0.5px;
+    color: #2076d6;
+    font-weight: 700;
+}
+.badge.major-badge {
+    background: #2076d6;
+    color: #fff;
+    font-size: 1.01em;
+    padding: 4px 13px;
+    border-radius: 7px;
+    margin-left: 2px;
+}
+.profile-meta {
+    color: #44617c;
+    font-size: 0.99em;
+    margin-top: 4px;
+}
+.profile-meta-dot {
+    margin: 0 7px;
+    color: #b3bdd0;
+}
+.profile-details-block > div {
+    margin-bottom: 1.23em;
+}
+.withicon {
+    font-size: 1.07em;
+    margin-left: 2px;
+}
+.weekdays {
+    margin: 6px 0 7px 0;
+}
+.weekday {
+    display: inline-block;
+    font-size: 0.98em;
+    background: #ecf5ff;
+    padding: 3px 9px;
+    margin: 0 2px 1px 0;
+    border-radius: 5px;
+    color: #2076d6;
+    font-weight: 600;
+}
+.bio-block {
+    color: #34435d;
+    background: #f8fafd;
+    border-radius: 7px;
+    font-style: italic;
+    padding: 9px 13px;
+    margin: 7px 0 0 0;
+    min-height: 32px;
+    white-space: pre-line;
+    word-break: break-word;
+}
+.courses-list {
+    margin: 7px 0 0 0;
+    padding-left: 1.1em;
+    color: #217;
+}
+.courses-list li {
+    margin-bottom: 2px;
+    font-size: 1.02em;
+}
+.muted {
+    color: #888ba2 !important;
+    font-style: italic;
+}
+.profile-edit-btn {
+    background: linear-gradient(90deg, #2076d6 60%, #52a1ff 100%);
+    color: #fff !important;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 39px;
+    font-size: 1.11em;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 16px #2067d622;
+    text-decoration: none !important;
+    transition: background .18s, box-shadow .18s;
+    display: inline-block;
+}
+.profile-edit-btn:hover,
+.profile-edit-btn:focus {
+    background: linear-gradient(90deg, #2076d6 60%, #329dff 100%);
+    box-shadow: 0 6px 24px #3499ea33;
+}
+</style>
 {% endblock %}

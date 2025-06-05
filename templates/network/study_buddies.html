@@ -2,23 +2,19 @@
 
 {% block content %}
 <h3>🤝 Your Study Buddies</h3>
-<ul>
+<div class="buddies-list">
   {% for buddy in study_buddies %}
-    {% if buddy.participant_one.id == user_profile.id %}
+    {% if buddy.participant_one.id == user_profile.id and buddy.participant_two.id != user_profile.id %}
       {% with other=buddy.participant_two %}
-        <li>
-          <strong>{{ other.user.username }}</strong> — {{ other.major }}
-        </li>
+        {% include 'network/buddy_card.html' %}
       {% endwith %}
-    {% else %}
+    {% elif buddy.participant_two.id == user_profile.id and buddy.participant_one.id != user_profile.id %}
       {% with other=buddy.participant_one %}
-        <li>
-          <strong>{{ other.user.username }}</strong> — {{ other.major }}
-        </li>
+        {% include 'network/buddy_card.html' %}
       {% endwith %}
     {% endif %}
   {% empty %}
-    <li>You don't have any study buddies yet.</li>
+    <div class="no-buddies">You don't have any study buddies yet.</div>
   {% endfor %}
-</ul>
+</div>
 {% endblock %}

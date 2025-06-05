@@ -1,5 +1,8 @@
 from django.db.models import Q, Count
 from datetime import timedelta
+
+from networkx.drawing import spring_layout
+
 from .models import UserProfile, StudyBuddyInvite, StudyBuddy
 
 import networkx as nx
@@ -13,7 +16,6 @@ def build_study_network_graph():
     users = UserProfile.objects.all()
     for user in users:
         G.add_node(user.id, label=user.user.username)
-
 
 
     # Add edges from study sessions (accepted connections)
@@ -31,12 +33,36 @@ def build_study_network_graph():
     return G
 
 
-def draw_study_network_graph(G):
+
+def draw_study_network_graph(G, user_node=None, buddy_nodes=None, recommendation_nodes=None):
+    if buddy_nodes is None:
+        buddy_nodes = []
+    if recommendation_nodes is None:
+        recommendation_nodes = []
+
     pos = nx.spring_layout(G)
-    edge_colors = ['green' if d.get('type') == 'session' else 'blue' for _,_,d in G.edges(data=True)]
-    nx.draw(G, pos, with_labels=True, labels=nx.get_node_attributes(G, 'label'),
-            edge_color=edge_colors, node_size=800, node_color='lightgray')
-    plt.show()
+    node_colors = []
+    for n in G.nodes():
+        if str(n) == str(user_node):
+            node_colors.append('#FFD600')     # Gold for user
+        elif str(n) in [str(b) for b in buddy_nodes]:
+            node_colors.append('#1976d2')     # Blue for buddies
+        elif str(n) in [str(r) for r in recommendation_nodes]:
+            node_colors.append('#FFAB40')     # Faint orange for recommendations
+        else:
+            node_colors.append('lightgray')
+
+    edge_colors = ['green' if d.get('type') == 'session' else 'blue' for _, _, d in G.edges(data=True)]
+    nx.draw(
+        G, pos=spring_layout(G, k=0.8),
+        with_labels=True, labels=nx.get_node_attributes(G, 'label'),
+        edge_color=edge_colors,
+        node_size=800,
+        node_color=node_colors,
+        linewidths=2,
+        edgecolors='black'
+    )
+    plt.tight_layout()
 
 def get_suggested_study_buddies(user_profile):
     print("=" * 40)
@@ -55,53 +81,47 @@ def get_suggested_study_buddies(user_profile):
     shared_course_users = UserProfile.objects \
         .filter(courses__in=user_profile.courses.all()) \
         .exclude(id__in=excluded_ids) \
-        .annotate(shared_courses=Count('courses')) \
-        .order_by('-shared_courses') \
         .distinct()
 
     print(f"Found {shared_course_users.count()} users sharing courses with you:")
 
-    my_weekdays =  list(user_profile.available_weekdays)
-    # Get user's availability
     compatible_days = UserProfile.objects \
         .filter(available_weekdays__overlap=user_profile.available_weekdays) \
         .exclude(id__in=excluded_ids) \
-        .annotate(shared_days=Count('available_weekdays')) \
-        .order_by('-shared_days') \
         .distinct()
+
     print(f"Your availability days: {len(compatible_days)}")
+
+    shared_course_ids = set(shared_course_users.values_list("id", flat=True))
+    compatible_day_ids = set(compatible_days.values_list("id", flat=True))
+    matching_user_ids = shared_course_ids & compatible_day_ids
+
+    matches = UserProfile.objects.filter(id__in=matching_user_ids)
 
     my_courses = set(c.code for c in user_profile.courses.all())
     my_days = set(user_profile.available_weekdays)
 
     suggestions = []
 
-    for other_user_profile in shared_course_users and compatible_days:
+    for other_user_profile in matches:
         if not compatible_styles(user_profile, other_user_profile):
             print("    Skipped: Incompatible study styles.")
             continue
-        other_courses = set(c.code for c in other_user_profile.courses.all())
-        overlapping_courses = my_courses & other_courses  # set intersection
 
-        other_days = set(other_user_profile.available_weekdays)
-        overlapping_days = my_days & other_days
 
-        study_style_match = (user_profile.study_style == other_user_profile.study_style or
-                             user_profile.study_style == 'mixed' or
-                             other_user_profile.study_style == 'mixed')
-
+        shared_courses = other_user_profile.courses.filter(id__in=user_profile.courses.values_list('id', flat=True))
+        shared_days = list(set(user_profile.available_weekdays) & set(other_user_profile.available_weekdays))
+        study_style = ""
         suggestions.append({
-            'profile': other_user_profile,
-            'courses': overlapping_courses,
-            'days': overlapping_days,
-            'style_match': study_style_match,
-            'user_study_style': user_profile.study_style,
-            'other_study_style': other_user_profile.study_style,
+            "profile": other_user_profile,
+            "shared_courses": shared_courses,
+            "shared_days": shared_days,
         })
+
 
     print(f"\nTotal suggestions made: {len(suggestions)}")
     for suggestion in suggestions:
-        print(f"Study buddy suggestions: {suggestion['profile'].user.username} - courses: {suggestion['courses']}, days: {suggestion['days']}")
+        print(f"Study buddy suggestions: {suggestion['profile'].user.username} - courses: {suggestion['shared_courses']}, days: {suggestion['shared_days']}")
 
     return suggestions
 

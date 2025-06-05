@@ -1,29 +1,133 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
 
 {% block content %}
-<h2>Edit Profile</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.profile_pic.label_tag }} {{ form.profile_pic }}
-    {{ form.school.label_tag }} {{ form.school }}
-    {{ form.major.label_tag }} {{ form.major }}
-    {{ form.year_of_study.label_tag }} {{ form.year_of_study }}
-    {{ form.study_style.label_tag }} {{ form.study_style }}
-    {{ form.prefers_group.label_tag }} {{ form.prefers_group }}
-    {{ form.bio.label_tag }} {{ form.bio }}
+<div class="profile-edit-card">
+    <h2>Edit Your Profile</h2>
+    <form method="post" enctype="multipart/form-data" autocomplete="off" class="profile-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
 
-    <div class="form-group">
-        <label>Which days can you usually study?</label>
-        {{ form.available_weekdays }}
-        {% if form.available_weekdays.help_text %}
-            <small class="form-text text-muted">{{ form.available_weekdays.help_text }}</small>
-        {% endif %}
-        {% for error in form.available_weekdays.errors %}
-            <div class="text-danger">{{ error }}</div>
-        {% endfor %}
-    </div>
-    <button type="submit" class="btn btn-primary">Save</button>
-</form>
+        <div class="form-row">
+            {{ form.profile_pic.label_tag }}<br>
+            {{ form.profile_pic }}
+        </div>
+        <div class="form-row">
+            {{ form.school.label_tag }}
+            {{ form.school }}
+        </div>
+        <div class="form-row">
+            {{ form.major.label_tag }}
+            {{ form.major }}
+        </div>
+        <div class="form-row">
+            {{ form.year_of_study.label_tag }}
+            {{ form.year_of_study }}
+        </div>
+        <div class="form-row">
+            {{ form.study_style.label_tag }}
+            {{ form.study_style }}
+        </div>
+        <div class="form-row">
+            {{ form.bio.label_tag }}
+            {{ form.bio }}
+        </div>
+        <div class="form-row">
+            <span class="field-label">{{ form.available_weekdays.label }}</span>
+            <div class="weekday-boxes">{{ form.available_weekdays }}</div>
+        </div>
+        <div class="form-row">
+            <span class="field-label"><strong>Enrolled Courses</strong></span>
+            <div class="courses-select">
+              {{ form.enrolled_courses }}
+            </div>
+            <div class="form-help">Hold “Ctrl” (or “Cmd” on Mac) to select multiple courses.</div>
+        </div>
+        <button type="submit" class="btn btn-primary profile-save-btn">Save Changes</button>
+    </form>
+</div>
 
+<style>
+.profile-edit-card {
+    background: #fff;
+    max-width: 460px;
+    margin: 48px auto 36px auto;
+    padding: 2.2em 2.2em 1.5em 2.2em;
+    border-radius: 14px;
+    box-shadow: 0 8px 36px #007bff22, 0 2px 8px #0001;
+    /* add accent border if you'd like: border-left: 6px solid #007bff; */
+}
+.profile-edit-card h2 {
+    text-align: center;
+    letter-spacing: .5px;
+    margin-bottom: 20px;
+    color: #2076d6;
+    font-weight: 700;
+}
+.profile-form .form-row {
+    margin-bottom: 1.4em;
+}
+.profile-form label,
+.profile-form .field-label {
+    font-weight: 600;
+    color: #224268;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 1.03em;
+}
+.profile-form input[type="text"],
+.profile-form input[type="file"],
+.profile-form select,
+.profile-form textarea {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1.1px solid #b9d7ff;
+    border-radius: 7px;
+    font-size: 1em;
+    background: #f8fafc;
+    transition: border .2s;
+}
+.profile-form input:focus,
+.profile-form select:focus,
+.profile-form textarea:focus {
+    border-color: #52a1ff;
+    background: #f0f7ff;
+    outline: none;
+}
+.profile-form .weekday-boxes label {
+    margin-right: 12px;
+}
+.courses-select select,
+.profile-form .courses-select select,
+.profile-form select[multiple] {
+    min-height: 80px;
+    padding: 9px 10px;
+    background: #f2f8ff;
+    border: 1.1px solid #b9d7ff;
+    border-radius: 7px;
+}
+.form-help {
+    color: #667;
+    font-size: .92em;
+    margin-top: 3px;
+}
+.profile-save-btn {
+    width: 100%;
+    margin-top: 18px;
+    background: linear-gradient(90deg, #2076d6 60%, #52a1ff 100%);
+    color: #fff !important;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 0;
+    font-size: 1.15em;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 16px #2067d622;
+    transition: background .19s, box-shadow .19s;
+}
+.profile-save-btn:hover,
+.profile-save-btn:focus {
+    background: linear-gradient(90deg, #2076d6 60%, #329dff 100%);
+    box-shadow: 0 6px 20px #3499ea44;
+}
+</style>
 {% endblock %}

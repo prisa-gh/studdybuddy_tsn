@@ -1,0 +1,20 @@
+<div class="buddy-card">
+  <img class="buddy-img" src="{{ other.profile_pic_url }}" alt="{{ other.user.username }}'s pic">
+  <div class="buddy-info">
+    <strong>{{ other.user.username }}</strong> <span class="badge">{{ other.major }}</span><br>
+    <span class="study-style">📝 Style: {{ other.get_study_style_display }}</span><br>
+    <span class="bio">{{ other.bio|default:"No bio yet." }}</span>
+    <div class="details">
+      <span>Year: {{ other.get_year_of_study_display }}</span> &middot;
+      <span>School: {{ other.school }}</span>
+    </div>
+    <div class="weekdays">
+      <strong>Available:</strong>
+      {% for wd in other.available_weekdays %}
+        <span class="weekday">{{ wd|capfirst }}</span>{% if not forloop.last %}, {% endif %}
+      {% empty %}
+        <em>No days set</em>
+      {% endfor %}
+    </div>
+  </div>
+</div>

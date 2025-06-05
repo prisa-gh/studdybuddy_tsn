@@ -1,6 +1,63 @@
 {% extends "base.html" %}
+
 {% block content %}
-  <h2>Study Network Graph</h2>
-  <p>This graph shows connections between users based on accepted study buddy sessions.</p>
-  <img src="{% url 'study_graph_image' %}" alt="Study Network Graph" style="display: block; max-width:90vw;">
+  <div class="graph-container">
+      <h2>📊 Your Study Network</h2>
+      <p class="graph-info">
+        This visualization shows your connections with other study buddies across shared courses, majors, and more.
+      </p>
+      <div class="graph-card">
+        <img src="{% url 'study_graph_image' %}" alt="Study Network Graph" class="study-graph-img">
+      </div>
+      <a href="{% url 'dashboard' %}" class="return-dashboard-btn">← Back to Dashboard</a>
+  </div>
+
+  <style>
+    .graph-container {
+      max-width: 700px;
+      margin: 36px auto;
+      padding: 18px 28px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px #0002;
+      text-align: center;
+    }
+    .graph-info {
+      color: #666;
+      font-size: 1em;
+      margin-bottom: 18px;
+    }
+    .graph-card {
+      margin: 0 auto 24px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px #0001;
+      display: flex;
+      justify-content: center;
+      min-height: 340px;
+      align-items: center;
+    }
+    .study-graph-img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px #1976d235;
+      border: 1px solid #e2e6ea;
+    }
+    .return-dashboard-btn {
+      display: inline-block;
+      padding: 10px 26px;
+      background: #1976d2;
+      color: #fff;
+      font-weight: 700;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 1.08em;
+      transition: background 0.18s;
+      margin-top: 10px;
+    }
+    .return-dashboard-btn:hover {
+      background: #145db2;
+    }
+  </style>
 {% endblock %}

@@ -22,22 +22,51 @@
     These are students who share courses, study styles, and availability with you.
     </p>
 
-  <ul class="suggestions-list">
-      {% for suggestion in suggestions %}
-        <li class="suggestion-card">
-          <img class="profile-image" src="{{ suggestion.profile.profile_pic_url }}" alt="Profile Picture">
-          <div>
-            <p><strong>{{ suggestion.profile.user.username }}</strong> — {{ suggestion.profile.major }}</p>
-            <p>Courses: {{ suggestion.profile.courses|join:", " }}</p>
-            <p>Study Style: {{ suggestion.profile.get_study_style_display }}</p>
-            <form action="{% url 'send_invite' suggestion.profile.id %}" method="post">
-              {% csrf_token %}
-              <button type="submit">Send Invite</button>
-            </form>
-          </div>
-        </li>
-      {% endfor %}
-  </ul>
+  <div class="suggestions-list">
+        {% for suggestion in suggestions %}
+            {% with profile=suggestion.profile %}
+            <div class="buddy-card">
+                <img class="buddy-img" src="{{ profile.profile_pic_url }}" alt="{{ profile.user.username }}'s pic">
+                <div class="buddy-info">
+                    <strong>{{ profile.user.username }}</strong>
+                    <span class="badge major">{{ profile.major }}</span>
+                    <span class="study-style">📝 {{ profile.get_study_style_display }}</span>
+                    <div class="details">
+                        <span>Year: {{ profile.get_year_of_study_display }}</span>
+                        <span>School: {{ profile.school }}</span>
+                    </div>
+                    <div class="shared-section">
+                        <span class="shared-title">Shared Courses:</span>
+                        <ul class="shared-courses">
+                            {% for course in suggestion.shared_courses %}
+                            <li>{{ course.code }}: {{ course.name }}</li>
+                            {% empty %}
+                            <li><em>None</em></li>
+                            {% endfor %}
+                        </ul>
+                        <span class="shared-title">Shared Days:</span>
+                        <div class="shared-days">
+                            {% for day in suggestion.shared_days %}
+                              <span class="weekday">{{ day|capfirst }}</span>
+                            {% empty %}
+                              <em>None</em>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <form method="post" action="{% url 'send_invite' profile.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="invite-btn">Send Invite</button>
+                    </form>
+                </div>
+            </div>
+            {% endwith %}
+        {% empty %}
+            <p>No suggestions at this time.</p>
+        {% endfor %}
+    </div>
+
 
     <h3>📨 Pending Study Invites</h3>
 
@@ -62,9 +91,9 @@
 <ul class="foaf-container">
   {% for foaf in foaf_suggestions %}
     <li class="foaf-card">
-      <img class="foaf-image" src="{{ profile.profile_pic_url }}" alt="Profile Picture">
+      <img class="foaf-image" src="{{ foaf.profile_pic_url }}" alt="Profile Picture">
       <div class="foaf-info">
-        <div class="foaf-header">{{ foaf.user }}</div>
+        <div class="foaf-header">{{ foaf.user }} {{ foaf.id }}</div>
         <div class="foaf-details">{{ foaf.major }}</div>
         <div class="foaf-details"><strong>Courses in common:</strong> {{ foaf.common_courses|join:", " }}</div>
         <div class="foaf-details">
