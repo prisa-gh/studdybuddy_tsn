@@ -7,8 +7,8 @@ from django.db.models import Q
 from django.http import HttpResponse
 
 import io
-from .models import UserProfile, StudyBuddyInvite, StudyBuddy, WEEKDAY_CHOICES, UserCourse
-from .forms import UserProfileForm, RegisterForm
+from .models import UserProfile, StudyBuddyInvite, StudyBuddy, WEEKDAY_CHOICES, UserCourse, DirectMessage
+from .forms import UserProfileForm, RegisterForm, DirectMessageForm
 
 from .utils import build_study_network_graph, draw_study_network_graph, get_suggested_study_buddies, get_foaf_recommendations
 
@@ -222,8 +222,44 @@ def reject_invite(request, invite_id):
     return redirect('dashboard')
 
 
-# views.py
+@login_required
+def direct_message_inbox(request):
+    user_profile = request.user.userprofile
 
+    buddy_links = StudyBuddy.objects.filter(
+        Q(participant_one=user_profile) | Q(participant_two=user_profile)
+    )
+    buddies = [bl.participant_two if bl.participant_one == user_profile else bl.participant_one for bl in buddy_links]
+
+    # Handle message POST
+    if request.method == "POST":
+        buddy_id = request.POST.get('buddy_id')
+        buddy = get_object_or_404(UserProfile, id=buddy_id)
+        form = DirectMessageForm(request.POST)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.sender = user_profile
+            msg.receiver = buddy
+            msg.save()
+            return redirect('direct_message_inbox')
+
+    # Always reload all chats
+    chats = []
+    for buddy in buddies:
+        conversation = DirectMessage.objects.filter(
+            Q(sender=user_profile, receiver=buddy) |
+            Q(sender=buddy, receiver=user_profile)
+        ).order_by('timestamp')
+        chats.append({
+            'buddy': buddy,
+            'conversation': conversation,
+            'form': DirectMessageForm(),
+        })
+
+    return render(request, 'network/direct_message_inbox.html', {
+        'chats': chats,
+        'user_profile': user_profile,
+    })
 
 
 @login_required
@@ -249,7 +285,6 @@ def study_graph_image(request):
 
     # Gather recommendations (suggested buddies + FOAFs)
     suggested_profiles = [str(sug['profile'].pk) for sug in get_suggested_study_buddies(user_profile)]
-    print(get_foaf_recommendations(user_profile)[0].keys())  # Shows dict keys in your server log
     foaf_profiles = [str(foaf['id']) for foaf in get_foaf_recommendations(user_profile)]
     recommendations = list(set(suggested_profiles + foaf_profiles) - set(buddies) - {user_id})
 

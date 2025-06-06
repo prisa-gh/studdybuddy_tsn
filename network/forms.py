@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import UserProfile, WEEKDAY_CHOICES, Course, User
-
+from .models import UserProfile, WEEKDAY_CHOICES, Course, User, DirectMessage
 
 
 class UserProfileForm(forms.ModelForm):
@@ -59,3 +58,14 @@ class RegisterForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2", "school", "major")
 
+
+class DirectMessageForm(forms.ModelForm):
+    class Meta:
+        model = DirectMessage
+        fields = ['message']  # Sender and receiver are set in the view
+        widgets = {
+            'message': forms.Textarea(attrs={
+                'rows': 2,
+                'style': 'width:100%;min-height:2.2em;padding:7px 10px;border-radius:5px;border:1px solid #c6d3e6;font-size:1em;'
+            }),
+        }

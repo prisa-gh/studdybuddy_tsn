@@ -20,6 +20,8 @@ urlpatterns = [
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     path('profile/study_buddies/', views.view_study_buddies, name='study_buddies'),
 
+    path('direct_messages/', views.direct_message_inbox, name='direct_message_inbox'),
+
     path('study_graph/', views.study_graph, name='study_graph'),
     path('study_graph/image/', views.study_graph_image, name='study_graph_image'),
 

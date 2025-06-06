@@ -19,9 +19,17 @@ WEEKDAY_CHOICES = [
     ('sun', 'Sunday'),
 ]
 
+SCHOOL_CHOICES = [
+    ('circle', 'Circle School'),
+    ('square', 'Square School'),
+    ('triangle', 'Triangle School'),
+    ('rhombus', 'Rhombus School'),
+    ('rectangle', 'Rectangle School'),
+]
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    school = models.CharField(max_length=100)
+    school = models.CharField(max_length=100, choices=SCHOOL_CHOICES)
     major = models.CharField(max_length=100)
     year_of_study = models.IntegerField(choices=[(1, '1st'), (2, '2nd'), (3, '3rd'), (4, '4th'), (5, 'Graduate')])
 
@@ -91,3 +99,30 @@ class StudyBuddy(models.Model):
 
     class Meta:
         unique_together = ('participant_one', 'participant_two')
+
+class DirectMessage(models.Model):
+    sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_messages')
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)  # Optional
+
+    def __str__(self):
+        return f"From {self.sender} to {self.receiver} at {self.timestamp}"
+
+class Event(models.Model):
+    organizer = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='organized_events')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    date = models.DateField()
+    time = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Set "choices" below to True if you want each event to belong only to ONE school/major, or ManyToMany for multiple.
+    target_school = models.CharField(max_length=100, choices=SCHOOL_CHOICES, blank=True, null=True)  # blank means not restricted by school
+    target_major = models.CharField(max_length=100, blank=True, null=True)  # restrict by major if desired
+
+    class Meta:
+        ordering = ['-date', '-time']
+
+    def __str__(self):
+        return f"{self.title} by {self.organizer.user.username}"
