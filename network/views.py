@@ -6,10 +6,10 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 from django.http import HttpResponse
 
-import io
-from .models import UserProfile, StudyBuddyInvite, StudyBuddy, WEEKDAY_CHOICES, UserCourse, DirectMessage
-from .forms import UserProfileForm, RegisterForm, DirectMessageForm
 
+import io
+from .models import UserProfile, StudyBuddyInvite, StudyBuddy, WEEKDAY_CHOICES, SCHOOL_CHOICES, UserCourse, DirectMessage, Event
+from .forms import UserProfileForm, RegisterForm, DirectMessageForm
 from .utils import build_study_network_graph, draw_study_network_graph, get_suggested_study_buddies, get_foaf_recommendations
 
 
@@ -304,3 +304,41 @@ def study_graph_image(request):
 @login_required
 def study_graph(request):
     return render(request, "study_graph.html")
+
+
+from django.db.models import Q  # For sophisticated querying
+
+@login_required
+def events_page(request):
+    user_profile = UserProfile.objects.get(user=request.user)
+    # Handle event creation POST
+    if request.method == "POST":
+        title = request.POST["title"]
+        description = request.POST["description"]
+        date = request.POST["date"]
+        time = request.POST["time"]
+        target_school = request.POST.get("target_school") or None
+        target_major = request.POST.get("target_major") or None
+
+        Event.objects.create(
+            organizer=user_profile,
+            title=title,
+            description=description,
+            date=date,
+            time=time,
+            target_school=target_school,
+            target_major=target_major,
+        )
+        return redirect("events_page")
+
+    # Prepare event list for this user
+    events = Event.objects.filter(
+        Q(target_school=user_profile.school) |
+        Q(target_major=user_profile.major)
+    ).distinct().order_by("-date")
+
+    return render(request, "network/events_page.html", {
+        "events": events,
+        "school_choices": SCHOOL_CHOICES,
+        "major_choices": UserProfile._meta.get_field("major").choices,
+    })

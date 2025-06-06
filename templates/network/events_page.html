@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Create Event</h2>
+<form method="post" class="mb-4">
+  {% csrf_token %}
+  <label for="title">Title:</label>
+  <input type="text" name="title" required><br>
+
+  <label for="description">Description:</label>
+  <textarea name="description" required></textarea><br>
+
+  <label for="date">Date:</label>
+  <input type="date" name="date" required><br>
+
+  <label for="time">Time:</label>
+  <input type="time" name="time" required><br>
+
+  <label for="target_school">School:</label>
+  <select name="target_school">
+    <option value="">--Optional--</option>
+    {% for school, label in school_choices %}
+      <option value="{{ school }}">{{ label }}</option>
+    {% endfor %}
+  </select><br>
+
+  <label for="target_major">Major:</label>
+  <select name="target_major">
+    <option value="">--Optional--</option>
+    {% for major, label in major_choices %}
+      <option value="{{ major }}">{{ label }}</option>
+    {% endfor %}
+  </select><br>
+
+  <button type="submit">Create Event</button>
+</form>
+
+<hr>
+
+<h2>Events For You</h2>
+{% if events %}
+  {% for event in events %}
+    <div style="border:1px solid #ccc; padding:10px; margin:10px 0;">
+      <strong>{{ event.title }}</strong> <br>
+      {{ event.description }} <br>
+      <em>{{ event.date }} at {{ event.time }}</em> <br>
+      Target school: {{ event.target_school|default:"Any" }},
+      Target major: {{ event.target_major|default:"Any" }} <br>
+      Organizer: {{ event.organizer.user.username }}
+    </div>
+  {% endfor %}
+{% else %}
+  <p>No events in your school or major yet.</p>
+{% endif %}
+{% endblock %}

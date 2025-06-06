@@ -183,3 +183,10 @@ def compatible_styles(user1, user2):
         or user2.study_style == 'mixed'
     )
 
+def get_event_participants(event):
+    qs = UserProfile.objects.all()
+    if event.target_school:
+        qs = qs.filter(school=event.target_school)
+    if event.target_major:
+        qs = qs.filter(major=event.target_major)
+    return qs
